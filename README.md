@@ -1,9 +1,6 @@
 ### ⚠WARNING⚠
 WINDOWS SUPPORT ONLY IF YOU WANNA MAKE IT ON LINUX OR MAC YOU SHOULD REWRITE NGROK LIBRARY TO YOUR PATH OR DM ME IN DISCORD TO GET HELP
 
-# Roblox-Video-Player
-Roblox video player its support website's like youtube/pornhub/xxx videos
-
 # How to install ngrok
 Create your account
 ```c
