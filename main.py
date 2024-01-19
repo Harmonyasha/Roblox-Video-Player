@@ -7,6 +7,7 @@ import cv2
 from PIL import Image, ImageOps
 import ngrok_library
 from flask import Flask, jsonify, request, render_template
+
 app = Flask(__name__,static_url_path='')
 ngrok_library.run_with_ngrok(app)
 arr = {}
@@ -15,7 +16,10 @@ def imagetopixel(image,id,pos,sizes="200x100"):
   arr[id][pos] = "nil"
   t = time.time()
   sizes = sizes.split("x")
-  snapshot = image
+
+  cv2_im = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
+
+  snapshot = Image.fromarray(cv2_im)
   snapshot = snapshot.resize((int(sizes[0]),int(sizes[1])))
   snapshot = ImageOps.mirror(snapshot)
   pixels = snapshot.load()
@@ -39,22 +43,27 @@ def reset():
 
 @app.route('/play/<id>', methods=['POST'])
 def getframes(id):
+    global arr
     if id in arr and arr[id].__len__() != 0:
         newarr = []
+        count = 0
         for v in range(0,10):
-            if arr[id].__len__() == 0:
-                return newarr
-            newarr.append(arr[id][0])
-            del arr[id][0]
+           if arr[id].__len__()-1 == 0 :
+              break
+           newarr.append(arr[id][0])
+           del arr[id][0]
+           count+=1
         return newarr
     else:
         return "False"
 
 @app.route('/', methods=['POST'])
 def result():
-    
+    global arr
     url = request.json["url"]
     frameskip = request.json["frameskip"]
+    smartframes = request.json["settings"]["fastframe"]
+
     name = ""
     ydl_opts = {'outtmpl': ''}
     with YoutubeDL() as ydl:
@@ -67,8 +76,11 @@ def result():
     with YoutubeDL(ydl_opts) as ydl:
         if not os.path.exists(f"{name}.webm"):
           ydl.download(url)
+
     if os.path.exists(name):
         os.rename(name,name+".webm")
+    elif os.path.exists(name+".mkv"):
+        os.rename(name+".mkv",name+".webm")
     vidcap = cv2.VideoCapture(f'{name}.webm')
     #vidcap.get(cv2.CAP_PROP_FRAME_WIDTH,)
     success,image = vidcap.read()
@@ -80,25 +92,28 @@ def result():
             skip += 1
             success,image = vidcap.read()
             continue
-        cv2_im = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
-        pil_im = Image.fromarray(cv2_im)
-        threading.Thread(target=imagetopixel,args=(pil_im,name,arr[name].__len__())).start()
+
+      
+        threading.Thread(target=imagetopixel,args=(image,name,arr[name].__len__())).start()
         #arr[name].append(imagetopixel(pil_im).replace(" ",""))
         success,image = vidcap.read()
         skip = 0
         count += 1
-    time.sleep(5)
-    temparr = []
-    for v in arr[name]:
+
+    if smartframes:
+     time.sleep(5)
+    else:
+     for v in arr[name]:
         v = arr[name][v]
         if v == "nil":
             while v == "nil":
                 time.sleep(.5)
-        
-        temparr.append(v)
-    arr[name] = temparr
-    print(arr[name].__len__())
-    temparr = []
+
+    #print(arr[name])
+    arr[name] = list(arr[name].values())
+    #print("A")
+    #print(arr[name])
     return name
 
 app.run(token = "YourNgrokToken",domain = "Create domain if you want")
+#app.run(port=5972)
