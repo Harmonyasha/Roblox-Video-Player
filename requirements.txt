@@ -1,3 +1,4 @@
 Pillow==9.5.0
 Flask==2.3.2
 waitress==2.1.2
+opencv-python==4.9.0.80
